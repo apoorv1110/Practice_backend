@@ -7,8 +7,8 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 const registerUser = asyncHandler( async(req , res)=>{
      
     // step 1 : get user details 
-    const {fullname , email, isername , password} = req.body
-    console.log("email" , email);
+    const {fullname , email, username , password} = req.body
+    //console.log("email" , email);
 
     // step2 : validate if all details are filled using array
     if([fullname, email,username , password].some((feild)=> 
@@ -17,7 +17,7 @@ const registerUser = asyncHandler( async(req , res)=>{
     }
 
     // step 3: check if user already exist
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [ {email} , {username}]
     })
     if(existedUser){
@@ -25,17 +25,20 @@ const registerUser = asyncHandler( async(req , res)=>{
     }
     
     // check for images
-    const avatarLocalPath = req.files?.avatar[0]?.path
-    const CoverImageLocalPath = req.files?.coverImage[0]?.path
-
+    const avatarLocalPath = req.files?.avatar[0]?.path;
+    // const CoverImageLocalPath = req.files?.coverimage[0]?.path
+    let CoverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage)&&
+req.files.coverImage.length>0){
+    CoverImageLocalPath = req.files.coverImage[0].path
+}
     if(!avatarLocalPath){
         throw new ApiError(400 , "Avatar file is required")
     }
 
     // upload on cloudinary
     const avatar = await uploadOnCloudinary(avatarLocalPath)
-    const coverImage = await uploadOnCloudinary(CoverImageLocalPath)
-
+    const coverimage = await uploadOnCloudinary(CoverImageLocalPath)
     if(!avatar){
         throw new ApiError(400 , "Avatar file is required")
     }
@@ -45,7 +48,7 @@ const registerUser = asyncHandler( async(req , res)=>{
     const user = await User.create({
         fullname,
         avatar: avatar.url,
-        coverImage: coverImage.url?.url || "",
+        coverimage: coverimage?.url || "",
         email,
         password,
         username: username.toLowerCase()
@@ -66,6 +69,7 @@ const registerUser = asyncHandler( async(req , res)=>{
     )
 
 } )
+
 
 export {registerUser}
 
