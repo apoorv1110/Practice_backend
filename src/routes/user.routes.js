@@ -1,5 +1,5 @@
 import { Router }  from "express";
-import { loginUser, loggedOutUser , registerUser } from "../controllers/user.controller.js";
+import { loginUser, loggedOutUser , registerUser , refreshAccessToken} from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -27,5 +27,7 @@ router.route("/logout").post(verifyJWT , loggedOutUser)
 // isme pehle verifyJWT run hoga or uske baad next() ki wajah se loggedOutUser ke paas aayega
 // tab hum loggedOutuser me verijyJWT ki wajah se req me user ko access kar payenge
 // bina kuch input liye user se
+
+router.route("/refresh-token").post(refreshAccessToken)
 
 export default router
