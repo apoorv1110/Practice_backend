@@ -94,11 +94,12 @@ req.files.coverImage.length>0){
 const loginUser = asyncHandler(async (req,res)=>{
     // req body se data lana hai
     // username or email se login lena hai
-    const{email , username , password}= req.body
-    if(!username && !email){
-        throw new ApiError(400, "username or email is required")
+    const { email, username, password } = req.body
+
+    if (!username && !email) {
+        throw new ApiError(400, "Either username or email is required");
     }
-    
+
     // find the user based on any of email or username
     const user = await User.findOne({
         $or: [{username}, {email}]
@@ -108,19 +109,21 @@ const loginUser = asyncHandler(async (req,res)=>{
     }
 
     // check password
+    
     const isPassValid = await user.isPasswordCorrect(password)
     if(!isPassValid){
         throw new ApiError(404, "password incorrect")
     }
-
     // access and refresh token send to user
 
    const {accessToken , refreshToken} = await generateBothTokens(user._id)
+
 
     // send cookie
 
     const loggedInUser = await User.findById(user._id).
     select("-password -refreshToken")
+    
 
     const options = {
         httpOnly : true,
@@ -130,12 +133,13 @@ const loginUser = asyncHandler(async (req,res)=>{
     status(200).
     cookie("accessToken", accessToken , options )
     .cookie("refreshToken" , refreshToken , options)
-    ,json(
+    .json(
         new ApiResponse(
             200,
             {
                 user: loggedInUser , accessToken, refreshToken
             }
+            
             ,"User logged In successfully"
         )
     )
@@ -166,8 +170,9 @@ const loggedOutUser = asyncHandler( async(req,res) =>{
     .status(200)
     .clearCookie("accessToken" , options)
     .clearCookie("refreshToken" , options)
-    ,json(new ApiResponse(200 , {} ,"user logged out" ))
+    .json(new ApiResponse(200 , {} ,"user logged out" ))
 })
+
 
 
 
