@@ -6,6 +6,7 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import { json } from "express"
 import jwt from "jsonwebtoken"
 import {deleteFromCloudinary} from "../utils/deleteOldFile.js"
+import { mongo } from "mongoose"
 
 // method to generate access or refresh token
 const generateBothTokens = async(userId) => {
@@ -316,6 +317,8 @@ const updateCoverImage = asyncHandler(async(req,res)=>{
     .json(new ApiResponse(200 , user , "cover image updated successfully"))
 })
 
+// AGGREGATION PIPELINE FOR SUBSCRIBERS
+
 // aggregation pipeline is generally used for joining two or more
 // schemas below pipeline is used for joining user schema to subscribers
 // injecting subscribers , subscribedTo and isFollow elements to 
@@ -398,6 +401,67 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     )
 })
 
+// AGGREGATION PIPELINE FOR WATCH HISTORY
+const getWatchHistiry = asyncHandler(async(req,res)=>{
+    // req.user._id // here we get string object('id') but mongoose convert it to only id
+    const user = await User.aggregate([
+        {
+            $match:{
+               // _id: req.user._id this will not work we have to explicitly change it 
+               _id : new mongoose.Types.ObjectId(req.user._id)
+
+            }
+        },
+        {
+            $lookup: {
+                from : "videos",
+                localField: "watchHistory",
+                foreignField : "_id",
+                as: "watchHistory",
+
+                // here we have got our vedio but we also want owner
+                // so we use subpipeline to get owner also
+                pipeline : [
+                    {
+                        $lookup:{
+                            from : "users",
+                            localField : "owner",
+                            foreignField : "_id",
+                            as : "owner",
+                            pipeline : [
+                                {
+                                    $project:{
+                                        fullname: 1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first : "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+
+        }
+    ])
+
+    return res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "watch history fetched"
+        )
+    )
+})
+
 export {registerUser}
 export{loginUser}
 export{loggedOutUser}
@@ -408,4 +472,5 @@ export{updateAccountdetails}
 export{updateAvatar}
 export{updateCoverImage}
 export{getUserChannelProfile}
+export{getWatchHistiry}
 
