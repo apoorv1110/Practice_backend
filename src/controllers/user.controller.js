@@ -5,6 +5,7 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import { json } from "express"
 import jwt from "jsonwebtoken"
+import {deleteFromCloudinary} from "../utils/deleteOldFile.js"
 
 // method to generate access or refresh token
 const generateBothTokens = async(userId) => {
@@ -251,7 +252,7 @@ const updateAccountdetails = asyncHandler(async(req,res) =>{
     if(!fullname || !email){
         throw new ApiError(400 , "All feilds are required")
     }
-    const user = User.findByIdAndUpdate(
+    const user =  await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set:{
@@ -274,8 +275,11 @@ const updateAvatar = asyncHandler(async(req,res)=>{
     if(!avatar){
         throw new ApiError(400, "error while uploading on cloudinary")
     }
-
-    const user = await User.findByIdAndUpdate(
+    const user = await User.findById(req.user._id);
+    if (user?.avatar) {
+        await deleteFromCloudinary(user.avatar); // Delete old avatar from Cloudinary
+    }
+    const updatedUser = await User.findByIdAndUpdate(
         req.user._id,
         {
             $set:{
@@ -286,7 +290,7 @@ const updateAvatar = asyncHandler(async(req,res)=>{
     ).secure("-password")
 
     return res.status(200)
-    .json(new ApiResponse(200 , user , "avatar updated successfully"))
+    .json(new ApiResponse(200 , updatedUser , "avatar updated successfully"))
 })
 const updateCoverImage = asyncHandler(async(req,res)=>{
     const coverImageLocalPath = req.file?.path
