@@ -1,4 +1,4 @@
-import {v2 as cloudinary} from cloudinary
+import { v2 as cloudinary } from "cloudinary";
 
 // Utility function to delete an image from Cloudinary
 const deleteFromCloudinary = async (imageUrl) => {
@@ -16,4 +16,4 @@ const deleteFromCloudinary = async (imageUrl) => {
     }
 };
 
-module.exports = { deleteFromCloudinary };
+export { deleteFromCloudinary };

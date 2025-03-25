@@ -6,7 +6,7 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import { json } from "express"
 import jwt from "jsonwebtoken"
 import {deleteFromCloudinary} from "../utils/deleteOldFile.js"
-import { mongo } from "mongoose"
+import { mongoose } from "mongoose"
 
 // method to generate access or refresh token
 const generateBothTokens = async(userId) => {
@@ -282,14 +282,17 @@ const updateAvatar = asyncHandler(async(req,res)=>{
     }
     const updatedUser = await User.findByIdAndUpdate(
         req.user._id,
-        {
-            $set:{
-                avatar:avatar.url
-            }
+        { 
+            $set: { 
+                avatar: avatar.url
+            } 
         },
-        {new:true}
-    ).secure("-password")
-
+        { new: true }
+    ).lean(); // Converts Mongoose doc to plain JS object
+    
+    if (updatedUser?.secure) {
+        updatedUser = updatedUser.secure("-password"); // Only if `secure()` is available
+    }
     return res.status(200)
     .json(new ApiResponse(200 , updatedUser , "avatar updated successfully"))
 })
@@ -311,8 +314,10 @@ const updateCoverImage = asyncHandler(async(req,res)=>{
             }
         },
         {new:true}
-    ).secure("-password")
-
+    ).lean()
+    if (user?.secure) {
+        user = user.secure("-password"); // Only if `secure()` is available
+    }
     return res.status(200)
     .json(new ApiResponse(200 , user , "cover image updated successfully"))
 })
