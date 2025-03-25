@@ -316,6 +316,88 @@ const updateCoverImage = asyncHandler(async(req,res)=>{
     .json(new ApiResponse(200 , user , "cover image updated successfully"))
 })
 
+// aggregation pipeline is generally used for joining two or more
+// schemas below pipeline is used for joining user schema to subscribers
+// injecting subscribers , subscribedTo and isFollow elements to 
+// each user profile 
+
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
+
+    // get the username from req.params
+    const {username} = req.params
+    if(!username?.trim){
+        throw new ApiError(400, "user does not exist")
+    }
+    
+    const channel = await User.aggregate([
+        // match the username to one in database
+        {
+            $match : {
+                username : username?.toLowerCase()
+            }
+        },
+        // get all  documents of specific channels as subscribers 
+        // use lookUp for this
+        {
+            $lookup:{
+                from : "subscriptions",
+                localField : "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        // get all  documents of specific subscribers as subscribedTo
+        // use lookUp for this
+        {
+            $lookup:{
+                from : "subscriptions",
+                localField : "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        // count number of subscribers, subscribedTo and isSubscribed
+        {
+            $addFields:{
+                subscribersCount :{
+                    $size: "$subscribers"
+                },
+                channelSubscribedToCount:{
+                    $size : "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond :{
+                        if: {$in : [req.user?._id , "$subscribers.subscribers"]},
+                        then:true,
+                        else : false
+                    }
+                }
+            }
+        },
+        // to make new document containing all necessary details
+        // to show on channel page
+        {
+            $project : {
+                fullname : 1,
+                username : 1,
+                subscribersCount:1,
+                channelSubscribedToCount :1,
+                isSubscribed:1,
+                avatar : 1,
+                coverimage : 1,
+                email : 1,
+            }
+        }
+    ])
+    if(!channel?.length){
+        throw new ApiError(404 , "channel does not exist")
+    }
+    return res.status(200)
+    .json(
+        new ApiResponse(200, channel[0] , "user channel fetched successfully")
+    )
+})
+
 export {registerUser}
 export{loginUser}
 export{loggedOutUser}
@@ -325,4 +407,5 @@ export{getCurrentUser}
 export{updateAccountdetails}
 export{updateAvatar}
 export{updateCoverImage}
+export{getUserChannelProfile}
 
